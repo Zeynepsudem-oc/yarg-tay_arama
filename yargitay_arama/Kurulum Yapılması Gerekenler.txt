@@ -1,0 +1,6 @@
+googledan https://www.python.org/downloads/ sayfasına gidip python 3.11.9 Windows için indirilcek ve kurulum yapılcak 
+ CMD'den python --version yazdığında çıktı olarak pthon 3.11.9 yazıyorsa doğru kurulmuştur
+cmdye C:\proje_klasörün_tam_yolu
+pip install -r requirements.txt ( bazı bilgisayarlarda pip yerine py -m pip install -r requirements.txt yazabilirsin)
+sonra dosyadaki başlat.bat 'a çift tıklıyarak çalıştırabilirsin 
+
