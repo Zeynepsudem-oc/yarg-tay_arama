@@ -1401,12 +1401,32 @@ async function doSearch(page, forceRefresh) {
         filters
       ))
     });
+
+    // 1. Yanıtın JSON olup olmadığını ve HTTP durumunu kontrol et
+    const contentType = res.headers.get("content-type");
+    if (!res.ok || !contentType || !contentType.includes("application/json")) {
+      // JSON değilse gelen metni (HTML hata sayfasını) yakala ama ekrana düzgün mesaj ver
+      const rawText = await res.text();
+      console.error("Sunucudan dönen ham yanıt:", rawText);
+
+      statusEl.textContent = '';
+      resultsEl.innerHTML = `<div class="error-box">
+        Sunucudan geçersiz yanıt alındı (Status: ${res.status}). 
+        Yargıtay servisi yanıt vermiyor veya zaman aşımına uğramış olabilir.
+      </div>`;
+      btn.disabled = false;
+      refreshBtn.disabled = false;
+      return;
+    }
+
+    // 2. Artık güvenle JSON parse edebiliriz
     const data = await res.json();
 
     if (!data.success) {
       statusEl.textContent = '';
       resultsEl.innerHTML = '<div class="error-box">' + (data.error || 'Bilinmeyen hata.') + '</div>';
       btn.disabled = false;
+      refreshBtn.disabled = false;
       return;
     }
 
