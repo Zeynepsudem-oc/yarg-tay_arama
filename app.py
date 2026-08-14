@@ -1525,10 +1525,31 @@ function renderCard(result, idx) {
   const daire = pickField(raw, ['hukukBirimiText', 'birimAdi', 'daire']) || '11. Hukuk Dairesi';
 
   const metaParts = [];
-  if (esasNo) metaParts.push('<span><b>Esas No:</b> ' + esasNo + '</span>');
-  if (kararNo) metaParts.push('<span><b>Karar No:</b> ' + kararNo + '</span>');
-  if (tarih) metaParts.push('<span><b>Karar Tarihi:</b> ' + tarih + '</span>');
-  metaParts.push('<span><b>Daire:</b> ' + daire + '</span>');
+  if (esasNo) metaParts.push('<span><b>Esas No:</b> ' + escapeHtml(esasNo) + '</span>');
+  if (kararNo) metaParts.push('<span><b>Karar No:</b> ' + escapeHtml(kararNo) + '</span>');
+  if (tarih) metaParts.push('<span><b>Karar Tarihi:</b> ' + escapeHtml(tarih) + '</span>');
+  metaParts.push('<span><b>Daire:</b> ' + escapeHtml(daire) + '</span>');
+  metaParts.push('<span class="spacer"></span>');
+  metaParts.push('<button class="btn-small" id="dlbtn-' + idx + '" onclick="downloadOne(' + idx + ')" disabled>İndir (PDF)</button>');
+  metaParts.push('<button class="btn-small" id="csvbtn-' + idx + '" onclick="downloadOneCsv(' + idx + ')" disabled>CSV</button>');
+  metaParts.push('<button class="star-btn" id="starbtn-' + idx + '" onclick="toggleFavorite(' + idx + ')" disabled title="Favorilere ekle">☆</button>');
+
+  return '<div class="card" id="card-' + idx + '"><div class="meta-line">' + metaParts.join('') + '</div>' +
+    '<div id="fulltext-' + idx + '" class="loading-text">Tam metin getiriliyor...</div></div>';
+}
+
+function renderCard(result, idx) {
+  const raw = result.raw || {};
+  const esasNo = pickField(raw, ['esasNo', 'esas_no', 'esas']);
+  const kararNo = pickField(raw, ['kararNo', 'karar_no', 'karar']);
+  const tarih = pickField(raw, ['kararTarihi', 'karar_tarihi', 'tarih']);
+  const daire = pickField(raw, ['hukukBirimiText', 'birimAdi', 'daire']) || '11. Hukuk Dairesi';
+
+  const metaParts = [];
+  if (esasNo) metaParts.push('<span><b>Esas No:</b> ' + escapeHtml(esasNo) + '</span>');
+  if (kararNo) metaParts.push('<span><b>Karar No:</b> ' + escapeHtml(kararNo) + '</span>');
+  if (tarih) metaParts.push('<span><b>Karar Tarihi:</b> ' + escapeHtml(tarih) + '</span>');
+  metaParts.push('<span><b>Daire:</b> ' + escapeHtml(daire) + '</span>');
   metaParts.push('<span class="spacer"></span>');
   metaParts.push('<button class="btn-small" id="dlbtn-' + idx + '" onclick="downloadOne(' + idx + ')" disabled>İndir (PDF)</button>');
   metaParts.push('<button class="btn-small" id="csvbtn-' + idx + '" onclick="downloadOneCsv(' + idx + ')" disabled>CSV</button>');
