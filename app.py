@@ -34,7 +34,7 @@ import webbrowser
 from io import BytesIO, StringIO
 from datetime import datetime, timezone
 
-from flask import Flask, request, jsonify, render_template_string, send_file
+from flask import Flask, request, jsonify, render_template_string, send_file, Response
 import requests
 from bs4 import BeautifulSoup
 from fpdf import FPDF
@@ -75,6 +75,28 @@ logger = logging.getLogger("yargitay-arama")
 
 app = Flask(__name__)
 
+APP_USERNAME = os.environ.get("APP_USERNAME", "")
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
+
+
+def _check_auth(username, password):
+    return username == APP_USERNAME and password == APP_PASSWORD
+
+
+def _authenticate():
+    return Response(
+        "Bu siteye erişmek için giriş yapmanız gerekiyor.", 401,
+        {"WWW-Authenticate": 'Basic realm="Giris Gerekli"'},
+    )
+
+
+@app.before_request
+def _require_auth():
+    if not APP_USERNAME or not APP_PASSWORD:
+        return
+    auth = request.authorization
+    if not auth or not _check_auth(auth.username, auth.password):
+        return _authenticate()
 _session = None
 
 
