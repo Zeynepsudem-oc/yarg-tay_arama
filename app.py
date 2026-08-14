@@ -13,44 +13,11 @@ ve bulunan kararların tam metnini otomatik olarak getirir.
 1) Gerekli paketleri kurun:
         pip install -r requirements.txt
 
-2) Programı başlatın (çift tıklayarak da başlatabilirsiniz, "baslat.bat"a bakın):
+2) Programı başlatın:
         python app.py
 
 3) Program otomatik olarak tarayıcınızda şu adresi açacaktır:
         http://127.0.0.1:5000
-
-PDF İNDİRME: Tarayıcı-taraflı (html2canvas/html2pdf.js) yöntem gizlenmiş DOM
-elemanlarını genelde boş yakaladığı için güvenilir değildi. Bu yüzden PDF
-üretimi tamamen SUNUCU tarafında (Python + fpdf2) yapılıyor; proje klasörüne
-gömülü DejaVu Sans fontu sayesinde Türkçe karakterler (ğ, ş, ı, ö, ü, ç) her
-bilgisayarda doğru görünür.
-
-SAYFALAMA: Arama sonuçları 10'arlı sayfalara bölünür; toplam sonuç sayısına
-göre altta numaralı sayfa düğmeleri (1, 2, 3, ...) gösterilir.
-
-GELİŞMİŞ ARAMA (v2)
---------------------
-- Esas No (yıl + sıra no aralığı) ve Karar No (yıl + sıra no aralığı) alanları
-  artık arayüzden doldurulabiliyor.
-- Tarih aralığı (başlangıç / bitiş) filtresi eklendi.
-- VEYA (OR): ikinci bir anahtar kelime girilirse, iki ayrı arama yapılıp
-  sonuçlar birleştirilir.
-- DEĞİL (NOT): girilen kelime, kararın tam metninde geçiyorsa o kart otomatik
-  gizlenir (istemci tarafında, JS ile).
-- Kanun madde referansları (örn. "TTK m. 55") tam metinde otomatik işaretlenir.
-
-YEREL ÖNBELLEKLEME (v3)
-------------------------
-Aynı arama sorgusu (kelime + filtreler + sayfa) daha önce çekilmişse, sonuçlar
-Yargıtay sunucusuna tekrar istek atmadan yerel bir SQLite dosyasından
-(cache.db) anında gösterilir. Bu, hem uygulamayı hızlandırır hem de resmi
-sunucuya gereksiz yük bindirmeyi / IP'nin geçici olarak yavaşlatılmasını
-önler. Aynı şekilde her kararın tam metni de bir kere çekildikten sonra
-kalıcı olarak saklanır (kararlar zaten kesinleşmiş metinler olduğu için
-değişmez).
-
-Bir aramayı veya kararı zorla yeniden çekmek isterseniz arayüzdeki
-"🔄 Yenile" düğmesini kullanabilirsiniz.
 """
 
 import os
@@ -236,8 +203,7 @@ def save_cached_decision(doc_id, html_fragment, text, text_marked):
 
 
 def clear_cache():
-    """Tüm önbelleği temizler (arayüzdeki 'Önbelleği Temizle' düğmesi için).
-    Favoriler bu işlemden ETKİLENMEZ, ayrı bir tabloda tutulur."""
+    """Tüm önbelleği temizler."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("DELETE FROM search_cache")
@@ -247,7 +213,7 @@ def clear_cache():
 
 
 # ----------------------------------------------------------------------------
-# Favoriler (tek kullanıcılı, şifresiz — yerel SQLite'ta kalıcı liste)
+# Favoriler (yerel SQLite'ta kalıcı liste)
 # ----------------------------------------------------------------------------
 
 def add_favorite(fav_key, esas_no, karar_no, tarih, daire, text):
@@ -385,7 +351,6 @@ def html_to_text(html_content):
 
 
 def do_single_search(keyword, page_number, page_size, filters):
-    """Tek bir arama isteği yapar ve (results, total) döner."""
     session = get_session()
     payload = build_search_payload(
         keyword,
@@ -483,7 +448,7 @@ def isaretle_madde_referanslari(text):
 
 
 # ----------------------------------------------------------------------------
-# CSV üretimi / okuma
+# CSV / PDF üretimi
 # ----------------------------------------------------------------------------
 
 CSV_FIELDNAMES = ["esasNo", "kararNo", "tarih", "daire", "text"]
@@ -509,10 +474,6 @@ def csv_bytes_to_entries(csv_bytes):
     reader = csv.DictReader(StringIO(text))
     return [dict(row) for row in reader]
 
-
-# ----------------------------------------------------------------------------
-# PDF üretimi
-# ----------------------------------------------------------------------------
 
 FONT_REGULAR = os.path.join(APP_DIR, "fonts", "DejaVuSans.ttf")
 FONT_BOLD = os.path.join(APP_DIR, "fonts", "DejaVuSans-Bold.ttf")
@@ -545,7 +506,6 @@ def _write_decision_page(pdf, use_unicode, esas_no, karar_no, tarih, daire, text
     font_family = "Metin" if use_unicode else "Helvetica"
 
     pdf.add_page()
-
     pdf.set_x(pdf.l_margin)
     pdf.set_font(font_family, "B", 13)
     pdf.multi_cell(0, 7, _prep_text(daire or DAIRE_ADI, use_unicode))
@@ -670,7 +630,6 @@ def api_search():
     }
 
     save_cached_search(cache_key, response_payload)
-
     return jsonify(response_payload)
 
 
@@ -916,7 +875,7 @@ def api_pdf_all():
 
 
 # ----------------------------------------------------------------------------
-# Arayüz (tek sayfa HTML + JS)
+# HTML Şablonları
 # ----------------------------------------------------------------------------
 
 INDEX_HTML = """
@@ -1402,10 +1361,8 @@ async function doSearch(page, forceRefresh) {
       ))
     });
 
-    // 1. Yanıtın JSON olup olmadığını ve HTTP durumunu kontrol et
     const contentType = res.headers.get("content-type");
     if (!res.ok || !contentType || !contentType.includes("application/json")) {
-      // JSON değilse gelen metni (HTML hata sayfasını) yakala ama ekrana düzgün mesaj ver
       const rawText = await res.text();
       console.error("Sunucudan dönen ham yanıt:", rawText);
 
@@ -1419,7 +1376,6 @@ async function doSearch(page, forceRefresh) {
       return;
     }
 
-    // 2. Artık güvenle JSON parse edebiliriz
     const data = await res.json();
 
     if (!data.success) {
@@ -1920,7 +1876,7 @@ function renderCard(f, idx) {
   metaParts.push('<span class="spacer"></span>');
   metaParts.push('<button class="btn-small" onclick="downloadOne(' + idx + ')">İndir (PDF)</button>');
   metaParts.push('<button class="btn-small" onclick="downloadOneCsv(' + idx + ')">CSV</button>');
-  metaParts.push('<button class="btn-remove" onclick="removeFavorite(\\'' + f.favKey.replace(/'/g, "\\\\'") + '\\', ' + idx + ')">Kaldır</button>');
+  metaParts.push('<button class="btn-remove" onclick="removeFavorite(' + JSON.stringify(f.favKey) + ', ' + idx + ')">Kaldır</button>');
 
   const text = f.text && f.text.trim() ? f.text : '(Bu karar için metin kaydedilmemiş.)';
 
@@ -2039,6 +1995,10 @@ loadFavorites();
 </html>
 """
 
+
+# ----------------------------------------------------------------------------
+# Uygulama Başlatma
+# ----------------------------------------------------------------------------
 
 @app.route("/")
 def index():
