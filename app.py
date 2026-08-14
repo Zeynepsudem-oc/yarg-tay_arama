@@ -1293,6 +1293,15 @@ INDEX_HTML = """
 </main>
 
 <script>
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 let currentResults = {};
 let currentKeyword = '';
 let currentPage = 1;
@@ -1881,6 +1890,15 @@ FAVORITES_HTML = """
 </main>
 
 <script>
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 let favorites = [];
 
 async function loadFavorites() {
